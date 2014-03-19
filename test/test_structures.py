@@ -7,7 +7,9 @@ from gauged.structures import FloatArray, SparseMap
 from gauged.errors import GaugedUseAfterFreeError
 from .test_case import TestCase
 
+
 class TestStructures(TestCase):
+
     '''Test the FloatArray structure'''
 
     def setUp(self):
@@ -91,15 +93,16 @@ class TestStructures(TestCase):
 
     def test_map_empty_map(self):
         v = SparseMap()
-        self.assertDictEqual(dict(v.items()), { })
+        self.assertDictEqual(dict(v.items()), {})
         self.assertEqual(v.byte_length(), 0)
         v.free()
 
     def test_map_map_from_dict(self):
-        a = FloatArray([ 1, 2, 3, 4 ])
-        b = FloatArray([ 2, 4, 6, 8 ])
-        v = SparseMap({ 1: a, 3: b })
-        self.assertDictEqual(dict(v.items()), { 1: [1, 2, 3, 4], 3: [2, 4, 6, 8] })
+        a = FloatArray([1, 2, 3, 4])
+        b = FloatArray([2, 4, 6, 8])
+        v = SparseMap({1: a, 3: b})
+        self.assertDictEqual(
+            dict(v.items()), {1: [1, 2, 3, 4], 3: [2, 4, 6, 8]})
         v.free()
         a.free()
         b.free()
@@ -109,29 +112,30 @@ class TestStructures(TestCase):
         s = FloatArray([1, 2, 3])
         v.append(1, s)
         s.free()
-        self.assertDictEqual(dict(v.items()), { 1: [1, 2, 3] })
+        self.assertDictEqual(dict(v.items()), {1: [1, 2, 3]})
         v.free()
 
     def test_map_import_export(self):
-        a = FloatArray([ 1, 2, 3, 4 ])
-        b = FloatArray([ 2, 4, 6, 8 ])
-        v = SparseMap({ 1: a, 3: b })
+        a = FloatArray([1, 2, 3, 4])
+        b = FloatArray([2, 4, 6, 8])
+        v = SparseMap({1: a, 3: b})
         buf = v.buffer()
         a.free()
         b.free()
         v.free()
         self.assertEqual(len(buf), 40)
         copy = SparseMap(buf, len(buf))
-        self.assertDictEqual(dict(copy.items()), { 1: [1, 2, 3, 4], 3: [2, 4, 6, 8] })
+        self.assertDictEqual(
+            dict(copy.items()), {1: [1, 2, 3, 4], 3: [2, 4, 6, 8]})
         copy.free()
         v = SparseMap()
         self.assertEqual(v.buffer(), None)
         v.free()
 
     def test_map_clear(self):
-        a = FloatArray([ 1, 2, 3, 4 ])
-        b = FloatArray([ 2, 4, 6, 8 ])
-        v = SparseMap({ 1: a, 3: b })
+        a = FloatArray([1, 2, 3, 4])
+        b = FloatArray([2, 4, 6, 8])
+        v = SparseMap({1: a, 3: b})
         a.free()
         b.free()
         v.clear()
@@ -139,15 +143,15 @@ class TestStructures(TestCase):
         v.free()
 
     def test_map_buffer_offset(self):
-        a = FloatArray([ 1 ])
-        b = FloatArray([ 1, 2, 3 ])
-        v = SparseMap({ 1: a, 3: b })
+        a = FloatArray([1])
+        b = FloatArray([1, 2, 3])
+        v = SparseMap({1: a, 3: b})
         buf = v.buffer(byte_offset=8)
         a.free()
         b.free()
         v.free()
         copy = SparseMap(buf, len(buf))
-        self.assertDictEqual(dict(copy.items()), { 3: [1, 2, 3] })
+        self.assertDictEqual(dict(copy.items()), {3: [1, 2, 3]})
         copy.free()
 
     def test_context_manager_free(self):

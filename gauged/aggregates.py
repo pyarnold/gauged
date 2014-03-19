@@ -4,6 +4,7 @@ https://github.com/chriso/gauged (MIT Licensed)
 Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 '''
 
+
 class Aggregate(object):
 
     SUM = 'sum'
@@ -15,6 +16,6 @@ class Aggregate(object):
     MEDIAN = 'median'
     COUNT = 'count'
 
-    ALL = set(( SUM, MIN, MAX, MEAN, STDDEV, PERCENTILE, MEDIAN, COUNT ))
+    ALL = set((SUM, MIN, MAX, MEAN, STDDEV, PERCENTILE, MEDIAN, COUNT))
 
-    ASSOCIATIVE = set(( SUM, MIN, MAX, COUNT ))
+    ASSOCIATIVE = set((SUM, MIN, MAX, COUNT))

@@ -7,7 +7,9 @@ Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 from warnings import filterwarnings
 from .interface import DriverInterface
 
+
 class MySQLDriver(DriverInterface):
+
     '''A mysql driver for gauged'''
 
     MAX_KEY = 255
@@ -22,14 +24,15 @@ class MySQLDriver(DriverInterface):
                 mysql = __import__('pymysql')
                 self.to_buffer = str
             except ImportError:
-                raise ImportError('The mysql-python or pymysql library is required')
+                raise ImportError(
+                    'The mysql-python or pymysql library is required')
         self.db = mysql.connect(**kwargs)
         self.bulk_insert = bulk_insert
         self.cursor = self.db.cursor()
 
     def keys(self, namespace, prefix=None, limit=None, offset=None):
         '''Get keys from a namespace'''
-        params = [ namespace ]
+        params = [namespace]
         query = '''SELECT `key` FROM gauged_keys
             WHERE namespace = %s'''
         if prefix is not None:
@@ -44,13 +47,13 @@ class MySQLDriver(DriverInterface):
             params.append(limit)
         cursor = self.cursor
         cursor.execute(query, params)
-        return [ key for key, in cursor ]
+        return [key for key, in cursor]
 
     def lookup_ids(self, keys):
         '''Lookup the integer ID associated with each (namespace, key) in the
         keys list'''
         keys_len = len(keys)
-        ids = { namespace_key: None for namespace_key in keys }
+        ids = {namespace_key: None for namespace_key in keys}
         start = 0
         bulk_insert = self.bulk_insert
         query = 'SELECT namespace, `key`, id FROM gauged_keys WHERE '
@@ -58,12 +61,12 @@ class MySQLDriver(DriverInterface):
         cursor = self.cursor
         execute = cursor.execute
         while start < keys_len:
-            rows = keys[start:start+bulk_insert]
-            params = [ param for params in rows for param in params ]
+            rows = keys[start:start + bulk_insert]
+            params = [param for params in rows for param in params]
             id_query = query + (check + ' OR ') * (len(rows) - 1) + check
             execute(id_query, params)
             for namespace, key, id_ in cursor:
-                ids[( namespace, key )] = id_
+                ids[(namespace, key)] = id_
             start += bulk_insert
         return ids
 
@@ -72,9 +75,9 @@ class MySQLDriver(DriverInterface):
         cursor = self.cursor
         cursor.execute('''SELECT data, flags FROM gauged_data
             WHERE namespace = %s AND offset = %s AND `key` = %s''',
-            ( namespace, offset, key ))
+                       (namespace, offset, key))
         row = cursor.fetchone()
-        return ( None, None ) if row is None else row
+        return (None, None) if row is None else row
 
     def insert_keys(self, keys):
         '''Insert keys into a table which assigns an ID'''
@@ -84,8 +87,8 @@ class MySQLDriver(DriverInterface):
         query = 'INSERT IGNORE INTO gauged_keys (namespace, `key`) VALUES '
         execute = self.cursor.execute
         while start < keys_len:
-            rows = keys[start:start+bulk_insert]
-            params = [ param for params in rows for param in params ]
+            rows = keys[start:start + bulk_insert]
+            params = [param for params in rows for param in params]
             insert = '(%s,%s),' * (len(rows) - 1) + '(%s,%s)'
             execute(query + insert, params)
             start += bulk_insert
@@ -101,10 +104,10 @@ class MySQLDriver(DriverInterface):
         execute = self.cursor.execute
         to_buffer = self.to_buffer
         while start < blocks_len:
-            rows = blocks[start:start+bulk_insert]
+            rows = blocks[start:start + bulk_insert]
             params = []
             for namespace, offset, key, data, flags in rows:
-                params.extend(( namespace, offset, key, to_buffer(data), flags ))
+                params.extend((namespace, offset, key, to_buffer(data), flags))
             insert = (row + ',') * (len(rows) - 1) + row
             execute(query + insert, params)
             start += bulk_insert
@@ -123,10 +126,10 @@ class MySQLDriver(DriverInterface):
         execute = self.cursor.execute
         to_buffer = self.to_buffer
         while start < blocks_len:
-            rows = blocks[start:start+bulk_insert]
+            rows = blocks[start:start + bulk_insert]
             params = []
             for namespace, offset, key, data, flags in rows:
-                params.extend(( namespace, offset, key, to_buffer(data), flags ))
+                params.extend((namespace, offset, key, to_buffer(data), flags))
             insert = (row + ',') * (len(rows) - 1) + row
             execute(query + insert + post, params)
             start += bulk_insert
@@ -140,7 +143,7 @@ class MySQLDriver(DriverInterface):
         return cursor.fetchone()
 
     def set_metadata(self, metadata, replace=True):
-        params = [ param for params in metadata.iteritems() for param in params ]
+        params = [param for params in metadata.iteritems() for param in params]
         query = 'REPLACE' if replace else 'INSERT IGNORE'
         query += ' INTO gauged_metadata VALUES (%s,%s)'
         query += ',(%s,%s)' * (len(metadata) - 1)
@@ -149,14 +152,15 @@ class MySQLDriver(DriverInterface):
 
     def get_metadata(self, key):
         cursor = self.cursor
-        cursor.execute('SELECT value FROM gauged_metadata WHERE `key` = %s', (key,))
+        cursor.execute(
+            'SELECT value FROM gauged_metadata WHERE `key` = %s', (key,))
         result = cursor.fetchone()
         return result[0] if result else None
 
     def all_metadata(self):
         cursor = self.cursor
         cursor.execute('SELECT * FROM gauged_metadata')
-        return dict(( row for row in cursor ))
+        return dict((row for row in cursor))
 
     def set_writer_position(self, name, timestamp):
         '''Insert a timestamp to keep track of the current writer position'''
@@ -175,7 +179,7 @@ class MySQLDriver(DriverInterface):
         '''Get a list of namespaces'''
         cursor = self.cursor
         cursor.execute('''SELECT DISTINCT namespace FROM gauged_statistics''')
-        return [ namespace for namespace, in cursor ]
+        return [namespace for namespace, in cursor]
 
     def remove_namespace(self, namespace):
         '''Remove all data associated with the current namespace'''
@@ -190,9 +194,10 @@ class MySQLDriver(DriverInterface):
         params = (offset, )
         execute = self.cursor.execute
         execute('''DELETE FROM gauged_data WHERE offset >= %s''', params)
-        execute('''DELETE FROM gauged_statistics WHERE offset >= %s ''', params)
+        execute(
+            '''DELETE FROM gauged_statistics WHERE offset >= %s ''', params)
         execute('''DELETE FROM gauged_cache WHERE start + length >= %s''',
-            (timestamp,))
+                (timestamp,))
         execute('''UPDATE gauged_writer_history SET timestamp = %s
             WHERE timestamp > %s''', (timestamp, timestamp))
 
@@ -201,7 +206,7 @@ class MySQLDriver(DriverInterface):
         cursor = self.cursor
         cursor.execute('''SELECT start, value FROM gauged_cache WHERE namespace = %s
             AND hash = %s AND length = %s AND start BETWEEN %s AND %s''',
-            (namespace, query_hash, length, start, end))
+                       (namespace, query_hash, length, start, end))
         return cursor.fetchall()
 
     def add_cache(self, namespace, query_hash, length, cache):
@@ -214,10 +219,11 @@ class MySQLDriver(DriverInterface):
             (namespace, hash, length, start, value) VALUES '''
         execute = self.cursor.execute
         while start < cache_len:
-            rows = cache[start:start+bulk_insert]
+            rows = cache[start:start + bulk_insert]
             params = []
             for timestamp, value in rows:
-                params.extend(( namespace, query_hash, length, timestamp, value ))
+                params.extend(
+                    (namespace, query_hash, length, timestamp, value))
             insert = (row + ',') * (len(rows) - 1) + row
             execute(query + insert, params)
             start += bulk_insert
@@ -225,7 +231,8 @@ class MySQLDriver(DriverInterface):
 
     def remove_cache(self, namespace):
         '''Remove all cached values for the specified namespace'''
-        self.cursor.execute('DELETE FROM gauged_cache WHERE namespace = %s', (namespace,))
+        self.cursor.execute(
+            'DELETE FROM gauged_cache WHERE namespace = %s', (namespace,))
 
     def commit(self):
         '''Commit the current transaction'''
@@ -236,7 +243,7 @@ class MySQLDriver(DriverInterface):
         cursor = self.cursor
         execute = cursor.execute
         execute('SHOW TABLES')
-        tables = set(( table for table, in cursor ))
+        tables = set((table for table, in cursor))
         if 'gauged_data' not in tables:
             execute('''CREATE TABLE gauged_data (
                 namespace INT(11) UNSIGNED NOT NULL,
@@ -303,7 +310,7 @@ class MySQLDriver(DriverInterface):
         self.cursor.execute('''INSERT INTO gauged_statistics VALUES (%s,%s,%s,%s)
             ON DUPLICATE KEY UPDATE data_points = data_points + VALUES(data_points),
             byte_count = byte_count + VALUES(byte_count)''',
-            ( namespace, offset, data_points, byte_count ))
+                            (namespace, offset, data_points, byte_count))
 
     def get_namespace_statistics(self, namespace, start_offset, end_offset):
         '''Get namespace statistics for the period between start_offset and
@@ -312,4 +319,4 @@ class MySQLDriver(DriverInterface):
         cursor.execute('''SELECT SUM(data_points), SUM(byte_count)
             FROM gauged_statistics WHERE namespace = %s AND offset
             BETWEEN %s AND %s''', (namespace, start_offset, end_offset))
-        return [ long(count or 0) for count in cursor.fetchone() ]
+        return [long(count or 0) for count in cursor.fetchone()]

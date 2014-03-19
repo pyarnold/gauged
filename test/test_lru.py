@@ -6,7 +6,9 @@ Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 from gauged import LRU
 from .test_case import TestCase
 
+
 class TestLRU(TestCase):
+
     '''Test the least recently used cache in lru.py'''
 
     def test_lru_eviction(self):

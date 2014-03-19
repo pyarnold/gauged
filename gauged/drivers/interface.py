@@ -4,6 +4,7 @@ https://github.com/chriso/gauged (MIT Licensed)
 Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 '''
 
+
 class DriverInterface(object):
 
     MAX_KEY = 1024
@@ -72,7 +73,7 @@ class DriverInterface(object):
         pass
 
     def add_namespace_statistics(self, namespace, offset,
-            data_points, byte_count):
+                                 data_points, byte_count):
         raise NotImplementedError
 
     def get_namespace_statistics(self, namespace, start_offset, end_offset):

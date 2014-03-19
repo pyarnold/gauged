@@ -14,12 +14,14 @@ from .structures import SparseMap
 from .lru import LRU
 from ctypes import c_float
 from .errors import (GaugedAppendOnlyError, GaugedKeyOverflowError, GaugedNaNError,
-    GaugedUseAfterFreeError)
+                     GaugedUseAfterFreeError)
 from .bridge import Gauged
 from .results import Statistics
 from .utilities import to_bytes
 
+
 class Writer(object):
+
     '''Handle queueing and writes to the specified data store'''
 
     ERROR = 0
@@ -49,7 +51,7 @@ class Writer(object):
         '''Queue a gauge or gauges to be written'''
         if value is not None:
             return self.add(((data, value),), timestamp=timestamp,
-                namespace=namespace, debug=debug)
+                            namespace=namespace, debug=debug)
         writer = self.writer
         if writer is None:
             raise GaugedUseAfterFreeError
@@ -62,7 +64,7 @@ class Writer(object):
         if namespace is None:
             namespace = config.namespace
         if this_block < self.current_block or \
-                (this_block == self.current_block \
+                (this_block == self.current_block
                     and this_array < self.current_array):
             if config.append_only_violation == Writer.ERROR:
                 msg = 'Gauged is append-only; timestamps must be increasing'
@@ -90,10 +92,10 @@ class Writer(object):
         skip_long_keys = config.key_overflow == Writer.IGNORE
         skip_gauge_nan = config.gauge_nan == Writer.IGNORE
         if type(data) == StringType and skip_gauge_nan \
-                and skip_long_keys and whitelist is None: # fast path
+                and skip_long_keys and whitelist is None:  # fast path
             data_points = c_uint32(0)
-            if not Gauged.writer_emit_pairs(writer, namespace, data, \
-                    byref(data_points)):
+            if not Gauged.writer_emit_pairs(writer, namespace, data,
+                                            byref(data_points)):
                 raise MemoryError
             data_points = data_points.value
         else:
@@ -110,7 +112,7 @@ class Writer(object):
                     value = float(value)
                 except ValueError:
                     value = float('nan')
-                if value != value: # NaN?
+                if value != value:  # NaN?
                     if skip_gauge_nan:
                         continue
                     raise GaugedNaNError
@@ -138,14 +140,15 @@ class Writer(object):
         current_block = self.current_block
         statistics = self.statistics
         driver = self.driver
-        flags = 0 # for future extensions, e.g. block compression
+        flags = 0  # for future extensions, e.g. block compression
         for namespace, key, block in self.pending_blocks():
             length = block.byte_length()
             if not length:
                 continue
-            key_id = keys[( namespace, key )]
+            key_id = keys[(namespace, key)]
             statistics[namespace].byte_count += length
-            blocks.append((namespace, current_block, key_id, block.buffer(), flags))
+            blocks.append(
+                (namespace, current_block, key_id, block.buffer(), flags))
         if self.config.overwrite_blocks:
             driver.replace_blocks(blocks)
         else:
@@ -155,7 +158,7 @@ class Writer(object):
         update_namespace = driver.add_namespace_statistics
         for namespace, stats in statistics.iteritems():
             update_namespace(namespace, self.current_block,
-                stats.data_points, stats.byte_count)
+                             stats.data_points, stats.byte_count)
         statistics.clear()
         driver.commit()
         self.flush_now = False
@@ -186,10 +189,10 @@ class Writer(object):
         size = writer_contents.buffer_size
         pointers = writer_contents.buffer
         while position < size:
-            yield pointers[position], pointers[position+1]
+            yield pointers[position], pointers[position + 1]
             position += 2
 
-    def debug(self, timestamp, namespace, data): # pragma: no cover
+    def debug(self, timestamp, namespace, data):  # pragma: no cover
         print 'Timestamp: %s, Namespace: %s' % (timestamp, namespace)
         if type(data) == StringType:
             data = self.parse_query(data)
@@ -197,7 +200,7 @@ class Writer(object):
             data = data.iteritems()
         whitelist = self.config.key_whitelist
         if whitelist is not None:
-            data = { key: value for key, value in data if key in whitelist }
+            data = {key: value for key, value in data if key in whitelist}
         else:
             data = dict(data)
         pprint(data)
@@ -215,7 +218,7 @@ class Writer(object):
         if not len(keys):
             return {}
         key_cache = self.key_cache
-        to_translate = [ key for key in keys if key not in key_cache ]
+        to_translate = [key for key in keys if key not in key_cache]
         self.driver.insert_keys(to_translate)
         ids = self.driver.lookup_ids(to_translate)
         for key in keys:

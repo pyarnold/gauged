@@ -4,7 +4,9 @@ https://github.com/chriso/gauged (MIT Licensed)
 Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 '''
 
+
 class LRU(object):
+
     '''A least recently used cache'''
 
     def __init__(self, maximum):
@@ -55,7 +57,9 @@ class LRU(object):
             self.tail = obj.prev
         del self.data[key]
 
+
 class LRUNode(object):
+
     '''A node in the LRU cache'''
 
     __slots__ = ['prev', 'next', 'key', 'value']

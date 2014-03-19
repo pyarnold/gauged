@@ -6,8 +6,8 @@ Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 
 from .interface import DriverInterface
 
-class SQLiteDriver(DriverInterface):
 
+class SQLiteDriver(DriverInterface):
 
     MAX_KEY = 255
 
@@ -25,7 +25,7 @@ class SQLiteDriver(DriverInterface):
 
     def keys(self, namespace, prefix=None, limit=None, offset=None):
         '''Get keys from a namespace'''
-        params = [ namespace ]
+        params = [namespace]
         query = '''SELECT `key` FROM gauged_keys
             WHERE namespace = ?'''
         if prefix is not None:
@@ -40,13 +40,13 @@ class SQLiteDriver(DriverInterface):
             params.append(limit)
         cursor = self.cursor
         cursor.execute(query, params)
-        return [ key for key, in cursor ]
+        return [key for key, in cursor]
 
     def lookup_ids(self, keys):
         '''Lookup the integer ID associated with each (namespace, key) in the
         keys list'''
         keys_len = len(keys)
-        ids = { namespace_key: None for namespace_key in keys }
+        ids = {namespace_key: None for namespace_key in keys}
         start = 0
         bulk_insert = self.bulk_insert
         query = 'SELECT namespace, `key`, id FROM gauged_keys WHERE '
@@ -54,12 +54,12 @@ class SQLiteDriver(DriverInterface):
         cursor = self.cursor
         execute = cursor.execute
         while start < keys_len:
-            rows = keys[start:start+bulk_insert]
-            params = [ param for params in rows for param in params ]
+            rows = keys[start:start + bulk_insert]
+            params = [param for params in rows for param in params]
             id_query = query + (check + ' OR ') * (len(rows) - 1) + check
             execute(id_query, params)
             for namespace, key, id_ in cursor:
-                ids[( namespace, key )] = id_
+                ids[(namespace, key)] = id_
             start += bulk_insert
         return ids
 
@@ -68,9 +68,9 @@ class SQLiteDriver(DriverInterface):
         cursor = self.cursor
         cursor.execute('''SELECT data, flags FROM gauged_data
             WHERE namespace = ? AND offset = ? AND `key` = ?''',
-            ( namespace, offset, key ))
+                       (namespace, offset, key))
         row = cursor.fetchone()
-        return ( None, None ) if row is None else row
+        return (None, None) if row is None else row
 
     def insert_keys(self, keys):
         '''Insert keys into a table which assigns an ID'''
@@ -81,8 +81,8 @@ class SQLiteDriver(DriverInterface):
         query = 'INSERT OR IGNORE INTO gauged_keys (namespace, `key`) '
         execute = self.cursor.execute
         while start < keys_len:
-            rows = keys[start:start+bulk_insert]
-            params = [ param for params in rows for param in params ]
+            rows = keys[start:start + bulk_insert]
+            params = [param for params in rows for param in params]
             insert = (select + ' UNION ') * (len(rows) - 1) + select
             execute(query + insert, params)
             start += bulk_insert
@@ -97,8 +97,8 @@ class SQLiteDriver(DriverInterface):
         query = 'REPLACE INTO gauged_data (namespace, offset, `key`, data, flags) '
         execute = self.cursor.execute
         while start < blocks_len:
-            rows = blocks[start:start+bulk_insert]
-            params = [ param for params in rows for param in params ]
+            rows = blocks[start:start + bulk_insert]
+            params = [param for params in rows for param in params]
             insert = (select + ' UNION ') * (len(rows) - 1) + select
             execute(query + insert, params)
             start += bulk_insert
@@ -114,10 +114,10 @@ class SQLiteDriver(DriverInterface):
         query = 'INSERT OR IGNORE INTO gauged_data (namespace, offset, `key`, data, flags) '
         execute = self.cursor.execute
         while start < blocks_len:
-            rows = blocks[start:start+bulk_insert]
+            rows = blocks[start:start + bulk_insert]
             params = []
             for namespace, offset, key, _, _ in rows:
-                params.extend(( namespace, offset, key ))
+                params.extend((namespace, offset, key))
             insert = (select + ' UNION ') * (len(rows) - 1) + select
             execute(query + insert, params)
             start += bulk_insert
@@ -134,7 +134,7 @@ class SQLiteDriver(DriverInterface):
         return cursor.fetchone()
 
     def set_metadata(self, metadata, replace=True):
-        params = [ param for params in metadata.iteritems() for param in params ]
+        params = [param for params in metadata.iteritems() for param in params]
         query = 'REPLACE' if replace else 'INSERT OR IGNORE'
         query += ' INTO gauged_metadata SELECT ?,?'
         query += ' UNION SELECT ?,?' * (len(metadata) - 1)
@@ -143,14 +143,15 @@ class SQLiteDriver(DriverInterface):
 
     def get_metadata(self, key):
         cursor = self.cursor
-        cursor.execute('SELECT value FROM gauged_metadata WHERE `key` = ?', (key,))
+        cursor.execute(
+            'SELECT value FROM gauged_metadata WHERE `key` = ?', (key,))
         result = cursor.fetchone()
         return result[0] if result else None
 
     def all_metadata(self):
         cursor = self.cursor
         cursor.execute('SELECT * FROM gauged_metadata')
-        return dict(( row for row in cursor ))
+        return dict((row for row in cursor))
 
     def set_writer_position(self, name, timestamp):
         '''Insert a timestamp to keep track of the current writer position'''
@@ -169,7 +170,7 @@ class SQLiteDriver(DriverInterface):
         '''Get a list of namespaces'''
         cursor = self.cursor
         cursor.execute('''SELECT DISTINCT namespace FROM gauged_statistics''')
-        return [ namespace for namespace, in cursor ]
+        return [namespace for namespace, in cursor]
 
     def remove_namespace(self, namespace):
         '''Remove all data associated with the current namespace'''
@@ -185,7 +186,8 @@ class SQLiteDriver(DriverInterface):
         execute = self.cursor.execute
         execute('''DELETE FROM gauged_data WHERE offset >= ?''', params)
         execute('''DELETE FROM gauged_statistics WHERE offset >= ? ''', params)
-        execute('''DELETE FROM gauged_cache WHERE start + length >= ?''', (timestamp,))
+        execute(
+            '''DELETE FROM gauged_cache WHERE start + length >= ?''', (timestamp,))
         execute('''UPDATE gauged_writer_history SET timestamp = ?
             WHERE timestamp > ?''', (timestamp, timestamp))
 
@@ -207,10 +209,11 @@ class SQLiteDriver(DriverInterface):
             (namespace, hash, length, start, value) '''
         execute = self.cursor.execute
         while start < cache_len:
-            rows = cache[start:start+bulk_insert]
+            rows = cache[start:start + bulk_insert]
             params = []
             for timestamp, value in rows:
-                params.extend(( namespace, query_hash, length, timestamp, value ))
+                params.extend(
+                    (namespace, query_hash, length, timestamp, value))
             insert = (select + ' UNION ') * (len(rows) - 1) + select
             execute(query + insert, params)
             start += bulk_insert
@@ -218,7 +221,8 @@ class SQLiteDriver(DriverInterface):
 
     def remove_cache(self, namespace):
         '''Remove all cached values for the specified namespace'''
-        self.cursor.execute('DELETE FROM gauged_cache WHERE namespace = ?', (namespace,))
+        self.cursor.execute(
+            'DELETE FROM gauged_cache WHERE namespace = ?', (namespace,))
 
     def commit(self):
         '''Commit the current transaction'''
@@ -291,7 +295,7 @@ class SQLiteDriver(DriverInterface):
             VALUES (?, ?, 0, 0)''', ( namespace, offset ))
         execute('''UPDATE gauged_statistics SET data_points = data_points + ?,
             byte_count = byte_count + ? WHERE namespace = ? AND offset = ?''',
-            ( data_points, byte_count, namespace, offset ))
+                (data_points, byte_count, namespace, offset))
 
     def get_namespace_statistics(self, namespace, start_offset, end_offset):
         '''Get namespace statistics for the period between start_offset and
@@ -300,4 +304,4 @@ class SQLiteDriver(DriverInterface):
         cursor.execute('''SELECT SUM(data_points), SUM(byte_count)
             FROM gauged_statistics WHERE namespace = ? AND offset
             BETWEEN ? AND ?''', (namespace, start_offset, end_offset))
-        return [ long(count or 0) for count in cursor.fetchone() ]
+        return [long(count or 0) for count in cursor.fetchone()]

@@ -14,10 +14,12 @@ from .utilities import Time
 from .aggregates import Aggregate
 from .config import Config
 from .errors import (GaugedVersionMismatchError, GaugedBlockSizeMismatch,
-    GaugedSchemaError)
+                     GaugedSchemaError)
 from .version import __version__
 
+
 class Gauged(object):
+
     '''Read and write gauge data'''
 
     VERSION = __version__
@@ -68,32 +70,32 @@ class Gauged(object):
     def value(self, key, timestamp=None, namespace=None):
         '''Get the value of a gauge at the specified time'''
         return self.make_context(key=key, end=timestamp,
-            namespace=namespace).value()
+                                 namespace=namespace).value()
 
     def aggregate(self, key, aggregate, start=None, end=None,
-            namespace=None, percentile=None):
+                  namespace=None, percentile=None):
         '''Get an aggregate of all gauge data stored in the specified date range'''
         return self.make_context(key=key, aggregate=aggregate, start=start,
-            end=end, namespace=namespace,
-            percentile=percentile).aggregate()
+                                 end=end, namespace=namespace,
+                                 percentile=percentile).aggregate()
 
     def value_series(self, key, start=None, end=None, interval=None,
-            namespace=None, cache=None):
+                     namespace=None, cache=None):
         '''Get a time series of gauge values'''
         return self.make_context(key=key, start=start, end=end,
-            interval=interval, namespace=namespace, cache=cache).value_series()
+                                 interval=interval, namespace=namespace, cache=cache).value_series()
 
     def aggregate_series(self, key, aggregate, start=None, end=None,
-            interval=None, namespace=None, cache=None, percentile=None):
+                         interval=None, namespace=None, cache=None, percentile=None):
         '''Get a time series of gauge aggregates'''
         return self.make_context(key=key, aggregate=aggregate, start=start,
-            end=end, interval=interval, namespace=namespace, cache=cache,
-            percentile=percentile).aggregate_series()
+                                 end=end, interval=interval, namespace=namespace, cache=cache,
+                                 percentile=percentile).aggregate_series()
 
     def keys(self, prefix=None, limit=None, offset=None, namespace=None):
         '''Get gauge keys'''
         return self.make_context(prefix=prefix, limit=limit, offset=offset,
-            namespace=namespace).keys()
+                                 namespace=namespace).keys()
 
     def namespaces(self):
         '''Get a list of namespaces'''
@@ -102,7 +104,7 @@ class Gauged(object):
     def statistics(self, start=None, end=None, namespace=None):
         '''Get write statistics for the specified namespace and date range'''
         return self.make_context(start=start, end=end,
-            namespace=namespace).statistics()
+                                 namespace=namespace).statistics()
 
     def sync(self):
         '''Create the necessary schema'''
@@ -119,14 +121,14 @@ class Gauged(object):
         '''Get gauged metadata'''
         try:
             metadata = self.driver.all_metadata()
-        except: # pylint: disable=W0702
+        except:  # pylint: disable=W0702
             metadata = {}
         return metadata
 
     def migrate(self):
         '''Migrate an old Gauged schema to the current version. This is
         just a placeholder for now'''
-        self.driver.set_metadata({ 'current_version': Gauged.VERSION })
+        self.driver.set_metadata({'current_version': Gauged.VERSION})
 
     def make_context(self, **kwargs):
         '''Create a new context for reading data'''
@@ -140,7 +142,8 @@ class Gauged(object):
         config = self.config
         metadata = self.metadata()
         if 'current_version' not in metadata:
-            raise GaugedSchemaError('Gauged schema not found, try a gauged.sync()')
+            raise GaugedSchemaError(
+                'Gauged schema not found, try a gauged.sync()')
         if metadata['current_version'] != Gauged.VERSION:
             msg = 'The schema is version %s while this Gauged is version %s. '
             msg += 'Try upgrading Gauged and/or running gauged.migrate()'

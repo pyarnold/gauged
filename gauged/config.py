@@ -37,6 +37,7 @@ DEFAULTS = {
     }
 }
 
+
 class Config(object):
 
     def __init__(self, **kwargs):
@@ -66,4 +67,5 @@ class Config(object):
             raise ValueError('`block_size` must be a multiple of `resolution`')
         self.block_arrays = self.block_size // self.resolution
         if self.key_whitelist is not None:
-            self.key_whitelist = set(( to_bytes(key) for key in self.key_whitelist ))
+            self.key_whitelist = set((to_bytes(key)
+                                     for key in self.key_whitelist))

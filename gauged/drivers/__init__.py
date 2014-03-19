@@ -12,6 +12,7 @@ from .sqlite import SQLiteDriver
 from .postgresql import PostgreSQLDriver
 from ..utilities import IS_PYPY
 
+
 def parse_dsn(dsn_string):
     '''Parse a connection string and return the associated driver'''
     dsn = urlparse(dsn_string)
@@ -31,7 +32,7 @@ def parse_dsn(dsn_string):
     query = dsn.path.split('?')[1] if '?' in dsn.path else dsn.query
     kwargs = dict(parse_qsl(query, True))
     if scheme == 'sqlite':
-        return SQLiteDriver, [ dsn.path ], {}
+        return SQLiteDriver, [dsn.path], {}
     elif scheme == 'mysql':
         kwargs['user'] = username or 'root'
         kwargs['db'] = database
@@ -56,6 +57,7 @@ def parse_dsn(dsn_string):
         return PostgreSQLDriver, [], kwargs
     else:
         raise ValueError('Unknown driver %s' % dsn_string)
+
 
 def get_driver(dsn_string):
     driver, args, kwargs = parse_dsn(dsn_string)

@@ -4,11 +4,15 @@ https://github.com/chriso/gauged (MIT Licensed)
 Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 '''
 
-import os, glob, sys
+import os
+import glob
+import sys
 from ctypes import POINTER, Structure, CDLL, cdll
 from ctypes import c_int, c_size_t, c_uint32, c_char_p, c_bool, c_float
 
+
 class SharedLibrary(object):
+
     '''A shared library wrapper'''
 
     def __init__(self, name, prefix):
@@ -17,7 +21,7 @@ class SharedLibrary(object):
         version = sys.version.split(' ')[0][0:3]
         basename = name.split('.')[0]
         lib = glob.glob('%s/build/lib*-%s/%s*.so' % (path, version, basename))
-        if not len(lib): # pragma: no cover
+        if not len(lib):  # pragma: no cover
             lib = path + '/' + name
         else:
             lib = lib[0]
@@ -43,30 +47,40 @@ class SharedLibrary(object):
         setattr(self, name, fn)
         return fn
 
+
 class Array(Structure):
+
     '''A wrapper for the C type gauged_array_t'''
     _fields_ = [('buffer', POINTER(c_float)), ('size', c_size_t),
-                ('length',c_size_t)]
+                ('length', c_size_t)]
+
 
 class Map(Structure):
+
     '''A wrapper for the C type gauged_map_t'''
     _fields_ = [('buffer', POINTER(c_uint32)), ('size', c_size_t),
                 ('length', c_size_t)]
 
+
 class WriterHashNode(Structure):
+
     '''A wrapper for the C type gauged_writer_hash_node_t'''
 
 WriterHashNode._fields_ = [('key', c_char_p), ('map', POINTER(Map)),
-    ('array', POINTER(Array)),('namespace', c_uint32),
-    ('seed', c_uint32), ('next', POINTER(WriterHashNode))]
+                           ('array', POINTER(Array)), ('namespace', c_uint32),
+                           ('seed', c_uint32), ('next', POINTER(WriterHashNode))]
+
 
 class WriterHash(Structure):
+
     '''A wrapper for the C type gauged_writer_hash_t'''
     _fields_ = [('nodes', POINTER(POINTER(WriterHashNode))),
                 ('size', c_size_t), ('count', c_size_t),
                 ('head', POINTER(WriterHashNode))]
 
+
 class Writer(Structure):
+
     '''A wrapper for the C type gauged_writer_t'''
     _fields_ = [('pending', POINTER(WriterHash)),
                 ('max_key', c_size_t), ('copy', c_char_p),
@@ -98,9 +112,9 @@ Gauged.prototype('map_length', [MapPtr], c_size_t)
 Gauged.prototype('map_import', [Uint32Ptr, c_size_t], MapPtr)
 Gauged.prototype('map_append', [MapPtr, c_uint32, ArrayPtr], c_int)
 Gauged.prototype('map_advance', [Uint32Ptr, SizetPtr, Uint32Ptr, SizetPtr,
-    POINTER(FloatPtr)], Uint32Ptr)
+                                 POINTER(FloatPtr)], Uint32Ptr)
 Gauged.prototype('map_concat', [MapPtr, MapPtr, c_uint32, c_uint32,
-    c_uint32], c_int)
+                                c_uint32], c_int)
 Gauged.prototype('map_first', [MapPtr], c_float)
 Gauged.prototype('map_last', [MapPtr], c_float)
 Gauged.prototype('map_sum', [MapPtr], c_float)

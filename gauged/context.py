@@ -15,6 +15,7 @@ from .utilities import to_bytes
 from .results import Statistics, TimeSeries
 from .errors import GaugedDateRangeError, GaugedIntervalSizeError
 
+
 class Context(object):
 
     def __init__(self, driver, config, **context):
@@ -37,7 +38,7 @@ class Context(object):
     def keys(self):
         context = self.context
         return self.driver.keys(self.namespace, prefix=context['prefix'],
-            limit=context['limit'], offset=context['offset'])
+                                limit=context['limit'], offset=context['offset'])
 
     def statistics(self):
         context = self.context
@@ -51,7 +52,7 @@ class Context(object):
         end = (end_block + 1) * block_size
         namespace = self.namespace
         stats = self.driver.get_namespace_statistics(namespace,
-            start_block, end_block)
+                                                     start_block, end_block)
         return Statistics(namespace, start, end, stats[0], stats[1])
 
     def value(self, timestamp=None, key=None):
@@ -71,7 +72,7 @@ class Context(object):
                 block = get_block(key, end_block)
                 if block is not None:
                     if offset is not None:
-                        tmp = block.slice(end=offset+1)
+                        tmp = block.slice(end=offset + 1)
                         block.free()
                         block = tmp
                     if block.byte_length():
@@ -114,20 +115,22 @@ class Context(object):
             block_boundary_end = end_block * block_size
             values = []
             if start < block_boundary_start:
-                values.append(self.aggregate(start, block_boundary_start, aggregate, key))
+                values.append(
+                    self.aggregate(start, block_boundary_start, aggregate, key))
             self.suppress_interval_size_error = True
             values.extend(self.aggregate_series(block_boundary_start, block_boundary_end,
-                aggregate, key, block_size).values)
+                                                aggregate, key, block_size).values)
             if end > block_boundary_end:
-                values.append(self.aggregate(block_boundary_end, end, aggregate, key))
-            values = [ value for value in values if value is not None ]
+                values.append(
+                    self.aggregate(block_boundary_end, end, aggregate, key))
+            values = [value for value in values if value is not None]
             if aggregate == Aggregate.SUM:
                 result = sum(values) if len(values) else None
             elif aggregate == Aggregate.MIN:
                 result = min(values) if len(values) else None
             elif aggregate == Aggregate.MAX:
                 result = max(values) if len(values) else None
-            else: # Aggregate.COUNT
+            else:  # Aggregate.COUNT
                 result = sum(values) if len(values) else 0
             return result
         try:
@@ -182,7 +185,7 @@ class Context(object):
                         block.free()
                         block = None
                     result = sqrt(sum_of_squares / count)
-            else: # percentile & median
+            else:  # percentile & median
                 block = self.query(key, start, end)
                 if block is not None:
                     if aggregate == Aggregate.PERCENTILE:
@@ -206,9 +209,10 @@ class Context(object):
         cache = self.cache
         if cache:
             cache_key = sha1(str(dict(key=key,
-                look_behind=self.config.max_look_behind))).digest()
+                                      look_behind=self.config.max_look_behind))).digest()
             driver = self.driver
-            cached = dict(driver.get_cache(namespace, cache_key, interval, start, end))
+            cached = dict(
+                driver.get_cache(namespace, cache_key, interval, start, end))
         else:
             cached = {}
         values = []
@@ -216,21 +220,21 @@ class Context(object):
         while start < end:
             group_end = min(end, start + interval)
             value = cached[start] if start in cached else value_fn(start, key)
-            values.append(( start, group_end, value ))
+            values.append((start, group_end, value))
             start += interval
         if cache:
             to_cache = []
             cache_until_timestamp = self.cache_until * self.config.block_size
             for start, end, value in values:
                 if cache_until_timestamp >= end and start not in cached:
-                    to_cache.append(( start, value ))
+                    to_cache.append((start, value))
             if len(to_cache):
                 driver.add_cache(namespace, cache_key, interval, to_cache)
-        return TimeSeries(( (start, value) for start, _, value in values \
-            if value is not None ))
+        return TimeSeries(((start, value) for start, _, value in values
+                           if value is not None))
 
     def aggregate_series(self, start=None, end=None, aggregate=None,
-            key=None, interval=None):
+                         key=None, interval=None):
         key = self.translated_key if key is None else key
         if key is None or self.no_data:
             return TimeSeries([])
@@ -244,7 +248,8 @@ class Context(object):
         if cache:
             cache_key = sha1(str(dict(key=key, aggregate=aggregate))).digest()
             driver = self.driver
-            cached = dict(driver.get_cache(namespace, cache_key, interval, start, end))
+            cached = dict(
+                driver.get_cache(namespace, cache_key, interval, start, end))
         else:
             cached = {}
         values = []
@@ -255,17 +260,17 @@ class Context(object):
                 result = cached[start]
             else:
                 result = aggregate_fn(start, group_end, aggregate)
-            values.append(( start, group_end, result ))
+            values.append((start, group_end, result))
             start += interval
         if cache:
             to_cache = []
             cache_until_timestamp = self.cache_until * self.config.block_size
             for start, end, result in values:
                 if cache_until_timestamp >= end and start not in cached:
-                    to_cache.append(( start, result ))
+                    to_cache.append((start, result))
             if len(to_cache):
                 driver.add_cache(namespace, cache_key, interval, to_cache)
-        return TimeSeries(( (start, value) for start, _, value in values ))
+        return TimeSeries(((start, value) for start, _, value in values))
 
     def block_iterator(self, key, start, end, yield_if_empty=False):
         config = self.config
@@ -316,7 +321,7 @@ class Context(object):
                     block.free()
                     block = None
                 offset += block_arrays
-        except: # pragma: no cover
+        except:  # pragma: no cover
             result.free()
             raise
         finally:

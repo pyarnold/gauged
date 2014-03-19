@@ -3,21 +3,24 @@ Gauged - https://github.com/chriso/gauged
 Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 '''
 
-import datetime, random
+import datetime
+import random
 from math import ceil, floor, sqrt
 from time import time, sleep
 from warnings import filterwarnings
 from gauged import Gauged, Writer, Config
 from gauged.errors import (GaugedKeyOverflowError, GaugedDateRangeError, GaugedAppendOnlyError,
-    GaugedIntervalSizeError, GaugedNaNError, GaugedUseAfterFreeError,
-    GaugedVersionMismatchError, GaugedBlockSizeMismatch, GaugedSchemaError)
+                           GaugedIntervalSizeError, GaugedNaNError, GaugedUseAfterFreeError,
+                           GaugedVersionMismatchError, GaugedBlockSizeMismatch, GaugedSchemaError)
 from gauged.structures import SparseMap, FloatArray
 from types import LongType, IntType
 from .test_case import TestCase
 
 filterwarnings('ignore', category=GaugedBlockSizeMismatch)
 
+
 class TestGauged(TestCase):
+
     '''Test higher-level functionality in gauged.py'''
 
     # Override this with an instantiated driver
@@ -56,7 +59,7 @@ class TestGauged(TestCase):
     def test_add_with_whitelist(self):
         gauged = Gauged(self.driver, key_whitelist=['a'])
         with gauged.writer as writer:
-            writer.add({ 'a': 123, 'b': 456 }, timestamp=2000)
+            writer.add({'a': 123, 'b': 456}, timestamp=2000)
         self.assertEqual(gauged.value('a', timestamp=2000), 123)
         self.assertEqual(gauged.value('b', timestamp=2000), None)
 
@@ -69,7 +72,7 @@ class TestGauged(TestCase):
         with gauged.writer as writer:
             writer.add('bar', 123, timestamp=10000)
             writer.add('bar', 123, timestamp=15000, namespace=1)
-            writer.add({ 'foo': 123, 'bar': 456 }, timestamp=20000)
+            writer.add({'foo': 123, 'bar': 456}, timestamp=20000)
         stats = gauged.statistics()
         self.assertEqual(stats.data_points, 3)
         self.assertEqual(stats.byte_count, 24)
@@ -88,8 +91,10 @@ class TestGauged(TestCase):
     def test_parse_query(self):
         gauged = Gauged(self.driver)
         with gauged.writer as writer:
-            result = writer.parse_query('foo=bar&baz=&foobar&%3Ckey%3E=value%3D%3')
-            self.assertDictEqual(dict(result), {'<key>':'value=%3', 'foo':'bar', 'baz': ''})
+            result = writer.parse_query(
+                'foo=bar&baz=&foobar&%3Ckey%3E=value%3D%3')
+            self.assertDictEqual(
+                dict(result), {'<key>': 'value=%3', 'foo': 'bar', 'baz': ''})
 
     def test_constant_accessibility(self):
         gauged = Gauged(self.driver)
@@ -106,16 +111,17 @@ class TestGauged(TestCase):
         self.assertEqual(gauged.value('foobar'), 200)
         self.assertEqual(gauged.value('foobar', timestamp=22000), None)
         with gauged.writer as writer:
-            writer.add({ 'foobar': 300, 'invalid': 'nan' }, timestamp=50000)
+            writer.add({'foobar': 300, 'invalid': 'nan'}, timestamp=50000)
         self.assertEqual(gauged.value('foobar'), 300)
         self.assertEqual(gauged.value('foobar', 30000), 200)
-        timestamp = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=60)
+        timestamp = datetime.datetime(
+            1970, 1, 1) + datetime.timedelta(seconds=60)
         self.assertEqual(gauged.value('foobar', timestamp), 300)
         with gauged.writer as writer:
-            writer.add({ 'foobar': 350 }, timestamp=90000)
+            writer.add({'foobar': 350}, timestamp=90000)
             writer.add('foobar', 100, timestamp=120000)
             writer.add('bar', 150, timestamp=130000)
-        self.assertItemsEqual(gauged.keys(), [ 'foobar', 'bar' ])
+        self.assertItemsEqual(gauged.keys(), ['foobar', 'bar'])
         self.assertEqual(gauged.value('foobar'), 100)
         with gauged.writer as writer:
             writer.add('foobar', 500, timestamp=150000)
@@ -128,7 +134,8 @@ class TestGauged(TestCase):
             writer.clear_from(100000)
         self.assertEqual(gauged.value('foobar'), 350)
         with self.assertRaises(GaugedDateRangeError):
-            self.assertEqual(gauged.value('foobar', timestamp=-10000000000000), None)
+            self.assertEqual(
+                gauged.value('foobar', timestamp=-10000000000000), None)
 
     def test_gauge_nan(self):
         gauged = Gauged(self.driver, block_size=50000)
@@ -162,8 +169,10 @@ class TestGauged(TestCase):
             writer.add('foobar', 250, timestamp=20000)
             writer.add('foobar', 350, timestamp=40000)
             writer.add('foobar', 70, timestamp=60000)
-        self.assertEqual(gauged.aggregate('foobar', Gauged.MIN, start=11000), 70)
-        self.assertEqual(gauged.aggregate('foobar', Gauged.MIN, start=11000, end=55000), 150)
+        self.assertEqual(
+            gauged.aggregate('foobar', Gauged.MIN, start=11000), 70)
+        self.assertEqual(
+            gauged.aggregate('foobar', Gauged.MIN, start=11000, end=55000), 150)
         self.assertEqual(gauged.aggregate('foobar', Gauged.SUM), 870)
         self.assertEqual(gauged.aggregate('foobar', Gauged.MIN), 50)
         self.assertEqual(gauged.aggregate('foobar', Gauged.MAX), 350)
@@ -179,30 +188,35 @@ class TestGauged(TestCase):
         self.assertEqual(result, 5)
         start = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=10)
         end = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=20)
-        self.assertEqual(gauged.aggregate('foobar', Gauged.MEAN, start=start, end=end), 100)
+        self.assertEqual(
+            gauged.aggregate('foobar', Gauged.MEAN, start=start, end=end), 100)
         with self.assertRaises(ValueError):
             gauged.aggregate('foobar', Gauged.PERCENTILE, percentile=-1)
         with self.assertRaises(ValueError):
             gauged.aggregate('foobar', Gauged.PERCENTILE, percentile=101)
         with self.assertRaises(ValueError):
-            gauged.aggregate('foobar', Gauged.PERCENTILE, percentile=float('nan'))
+            gauged.aggregate(
+                'foobar', Gauged.PERCENTILE, percentile=float('nan'))
         with self.assertRaises(ValueError):
             gauged.aggregate('foobar', 'unknown')
 
     def test_series(self):
         gauged = Gauged(self.driver, block_size=10000)
-        self.assertEqual(len(gauged.value_series('foobar', start=0, end=10000).values), 0)
+        self.assertEqual(
+            len(gauged.value_series('foobar', start=0, end=10000).values), 0)
         with gauged.writer as writer:
             writer.add('foobar', 50, timestamp=10000)
             writer.add('foobar', 150, timestamp=15000)
             writer.add('foobar', 250, timestamp=20000)
             writer.add('foobar', 350, timestamp=40000)
             writer.add('foobar', 70, timestamp=60000)
-        series = gauged.value_series('foobar', start=0, end=80000, interval=10000)
-        self.assertListEqual(series.values, [ 50, 250, 250, 350, 350, 70 ])
+        series = gauged.value_series(
+            'foobar', start=0, end=80000, interval=10000)
+        self.assertListEqual(series.values, [50, 250, 250, 350, 350, 70])
         series = gauged.value_series('foobar', interval=10000)
-        self.assertListEqual(series.values, [ 50, 250, 250, 350, 350, 70 ])
-        series = gauged.value_series('foobar', start=0, end=80000, interval=10000, namespace=1)
+        self.assertListEqual(series.values, [50, 250, 250, 350, 350, 70])
+        series = gauged.value_series(
+            'foobar', start=0, end=80000, interval=10000, namespace=1)
         self.assertListEqual(series.values, [])
         with self.assertRaises(GaugedIntervalSizeError):
             gauged.value_series('foobar', interval=0)
@@ -211,8 +225,9 @@ class TestGauged(TestCase):
         with self.assertRaises(GaugedDateRangeError):
             gauged.value_series('foobar', start=-100000000000000)
         with self.assertRaises(GaugedDateRangeError):
-            gauged.value_series('foobar', end=-Gauged.NOW-10000)
-        self.assertListEqual(gauged.value_series('foobar', start=100000).values, [])
+            gauged.value_series('foobar', end=-Gauged.NOW - 10000)
+        self.assertListEqual(
+            gauged.value_series('foobar', start=100000).values, [])
 
     def test_series_caching(self):
         gauged = Gauged(self.driver, block_size=10000, min_cache_interval=1)
@@ -223,30 +238,36 @@ class TestGauged(TestCase):
             writer.add('foobar', 350, timestamp=40000)
             writer.add('foobar', 70, timestamp=60000)
             writer.add('bar', 70, timestamp=60000)
-        series = gauged.value_series('foobar', start=0, end=60000, interval=10000)
-        self.assertListEqual(series.values, [ 50, 250, 250, 350, 350 ])
+        series = gauged.value_series(
+            'foobar', start=0, end=60000, interval=10000)
+        self.assertListEqual(series.values, [50, 250, 250, 350, 350])
         series = gauged.value_series('bar', start=0, end=60000, interval=10000)
         self.assertListEqual(series.values, [])
-        gauged = Gauged(self.driver, block_size=10000, overwrite_blocks=True, min_cache_interval=1)
+        gauged = Gauged(
+            self.driver, block_size=10000, overwrite_blocks=True, min_cache_interval=1)
         with gauged.writer as writer:
             writer.add('foobar', 150, timestamp=10000)
             writer.add('foobar', 253, timestamp=15000)
             writer.add('foobar', 351, timestamp=20000)
             writer.add('foobar', 450, timestamp=40000)
             writer.add('foobar', 170, timestamp=60000)
-        series = gauged.value_series('foobar', start=0, end=60000, interval=10000)
-        self.assertListEqual(series.values, [ 50, 250, 250, 350, 350 ])
+        series = gauged.value_series(
+            'foobar', start=0, end=60000, interval=10000)
+        self.assertListEqual(series.values, [50, 250, 250, 350, 350])
         series = gauged.value_series('bar', start=0, end=60000, interval=10000)
         self.assertListEqual(series.values, [])
-        series = gauged.value_series('foobar', start=0, end=60000, interval=10000, cache=False)
-        self.assertListEqual(series.values, [ 150, 351, 351, 450, 450 ])
+        series = gauged.value_series(
+            'foobar', start=0, end=60000, interval=10000, cache=False)
+        self.assertListEqual(series.values, [150, 351, 351, 450, 450])
         self.driver.remove_cache(0)
-        series = gauged.value_series('foobar', start=0, end=60000, interval=10000)
-        self.assertListEqual(series.values, [ 150, 351, 351, 450, 450 ])
+        series = gauged.value_series(
+            'foobar', start=0, end=60000, interval=10000)
+        self.assertListEqual(series.values, [150, 351, 351, 450, 450])
 
     def test_series_aggregate(self):
         gauged = Gauged(self.driver, block_size=10000)
-        self.assertEqual(len(gauged.aggregate_series('foobar', Gauged.SUM).values), 0)
+        self.assertEqual(
+            len(gauged.aggregate_series('foobar', Gauged.SUM).values), 0)
         with gauged.writer as writer:
             writer.add('foobar', 50, timestamp=10000)
             writer.add('foobar', 150, timestamp=15000)
@@ -256,28 +277,28 @@ class TestGauged(TestCase):
             writer.add('foobar', 10, timestamp=35000)
             writer.add('bar', 10, timestamp=40000)
         series = gauged.aggregate_series('foobar', Gauged.SUM,
-            start=10000, end=40000, interval=10000)
+                                         start=10000, end=40000, interval=10000)
         self.assertListEqual(series.values, [200, 150, 50])
         series = gauged.aggregate_series('foobar', Gauged.SUM,
-            start=10000, end=40000, interval=10000, namespace=1)
+                                         start=10000, end=40000, interval=10000, namespace=1)
         self.assertListEqual(series.values, [])
         series = gauged.aggregate_series('foobar', Gauged.SUM,
-            start=10000, end=32000, interval=10000)
+                                         start=10000, end=32000, interval=10000)
         self.assertListEqual(series.values, [200, 150, 40])
         series = gauged.aggregate_series('foobar', Gauged.COUNT,
-            start=10000, end=50000, interval=10000)
+                                         start=10000, end=50000, interval=10000)
         self.assertListEqual(series.values, [2, 2, 2, 0])
         series = gauged.aggregate_series('foobar', Gauged.MIN,
-            start=12000, end=42000, interval=10000)
+                                         start=12000, end=42000, interval=10000)
         self.assertListEqual(series.values, [120, 30, 10])
         series = gauged.aggregate_series('foobar', Gauged.MAX,
-            start=12000, end=42000, interval=10000)
+                                         start=12000, end=42000, interval=10000)
         self.assertListEqual(series.values, [150, 40, 10])
 
     def test_aggregate_series_caching(self):
         gauged = Gauged(self.driver, block_size=10000, min_cache_interval=1)
         series = gauged.aggregate_series('foobar', Gauged.MEAN,
-            start=0, end=60000, interval=10000)
+                                         start=0, end=60000, interval=10000)
         self.assertListEqual(series.values, [])
         with gauged.writer as writer:
             writer.add('bar', 50, timestamp=0)
@@ -287,9 +308,10 @@ class TestGauged(TestCase):
             writer.add('foobar', 350, timestamp=40000)
             writer.add('foobar', 70, timestamp=60000)
         series = gauged.aggregate_series('foobar', Gauged.MEAN,
-            start=0, end=60000, interval=10000)
-        self.assertListEqual(series.values, [ None, 100, 250, None, 350, None ])
-        gauged = Gauged(self.driver, block_size=10000, overwrite_blocks=True, min_cache_interval=1)
+                                         start=0, end=60000, interval=10000)
+        self.assertListEqual(series.values, [None, 100, 250, None, 350, None])
+        gauged = Gauged(
+            self.driver, block_size=10000, overwrite_blocks=True, min_cache_interval=1)
         with gauged.writer as writer:
             writer.add('foobar', 150, timestamp=10000)
             writer.add('foobar', 253, timestamp=15000)
@@ -297,16 +319,19 @@ class TestGauged(TestCase):
             writer.add('foobar', 450, timestamp=40000)
             writer.add('foobar', 170, timestamp=60000)
         series = gauged.aggregate_series('foobar', Gauged.MEAN,
-            start=0, end=60000, interval=10000)
-        self.assertListEqual(series.values, [ None, 100, 250, None, 350, None ])
+                                         start=0, end=60000, interval=10000)
+        self.assertListEqual(series.values, [None, 100, 250, None, 350, None])
         series = gauged.aggregate_series('foobar', Gauged.MEAN,
-            start=0, end=60000, interval=10000, cache=False)
-        self.assertListEqual(series.values, [ None, 201.5, 351, None, 450, None ])
+                                         start=0, end=60000, interval=10000, cache=False)
+        self.assertListEqual(
+            series.values, [None, 201.5, 351, None, 450, None])
         self.driver.remove_cache(0)
         series = gauged.aggregate_series('foobar', Gauged.MEAN,
-            start=0, end=60000, interval=10000)
-        self.assertListEqual(series.values, [ None, 201.5, 351, None, 450, None ])
-        self.assertListEqual(series.timestamps, [ 0, 10000, 20000, 30000, 40000, 50000 ])
+                                         start=0, end=60000, interval=10000)
+        self.assertListEqual(
+            series.values, [None, 201.5, 351, None, 450, None])
+        self.assertListEqual(
+            series.timestamps, [0, 10000, 20000, 30000, 40000, 50000])
 
     def test_no_data(self):
         gauged = Gauged(self.driver)
@@ -337,7 +362,7 @@ class TestGauged(TestCase):
 
     def test_invalid_context_key(self):
         with self.assertRaises(ValueError):
-            Gauged(self.driver, defaults={'foobar':None})
+            Gauged(self.driver, defaults={'foobar': None})
 
     def test_metadata_on_create(self):
         gauged = Gauged(self.driver)
@@ -347,7 +372,7 @@ class TestGauged(TestCase):
         self.assertIn('created_at', metadata)
 
     def test_version_mismatch(self):
-        self.driver.set_metadata({ 'current_version': 'foo' })
+        self.driver.set_metadata({'current_version': 'foo'})
         gauged = Gauged(self.driver)
         with self.assertRaises(GaugedVersionMismatchError):
             with gauged.writer:
@@ -356,10 +381,12 @@ class TestGauged(TestCase):
 
     def test_accepting_data_as_string(self):
         gauged = Gauged(self.driver, resolution=1000, block_size=10000,
-            key_overflow=Gauged.IGNORE, gauge_nan=Gauged.IGNORE)
+                        key_overflow=Gauged.IGNORE, gauge_nan=Gauged.IGNORE)
         with gauged.writer as writer:
-            writer.add('foo=123.456&bar=-15.98&qux=0&invalid=foobar\n', timestamp=20000)
-        self.assertAlmostEqual(123.456, gauged.value('foo', timestamp=20000), 5)
+            writer.add(
+                'foo=123.456&bar=-15.98&qux=0&invalid=foobar\n', timestamp=20000)
+        self.assertAlmostEqual(
+            123.456, gauged.value('foo', timestamp=20000), 5)
         self.assertAlmostEqual(-15.98, gauged.value('bar', timestamp=20000), 5)
         self.assertEqual(gauged.value('qux', timestamp=20000), 0)
         self.assertEqual(gauged.value('invalid', timestamp=20000), None)
@@ -370,24 +397,26 @@ class TestGauged(TestCase):
         self.assertEqual(stats.data_points, 3)
         self.assertEqual(stats.byte_count, 24)
         gauged = Gauged(self.driver, resolution=1000, block_size=10000,
-            key_overflow=Gauged.IGNORE)
+                        key_overflow=Gauged.IGNORE)
         with self.assertRaises(GaugedNaNError):
             with gauged.writer as writer:
-                writer.add(u'foo=123.456&bar=-15.98&qux=0&invalid=foobar\n', timestamp=20000)
+                writer.add(
+                    u'foo=123.456&bar=-15.98&qux=0&invalid=foobar\n', timestamp=20000)
 
     def test_context_defaults(self):
         gauged = Gauged(self.driver, resolution=1000, block_size=10000)
         with gauged.writer as writer:
             writer.add('bar', 123, timestamp=10000)
             writer.add('foo', 456, timestamp=20000)
-        self.assertListEqual(gauged.keys(), [ 'bar', 'foo' ])
+        self.assertListEqual(gauged.keys(), ['bar', 'foo'])
         gauged = Gauged(self.driver, resolution=1000, block_size=10000, defaults={
             'limit': 1
         })
-        self.assertListEqual(gauged.keys(), [ 'bar' ])
+        self.assertListEqual(gauged.keys(), ['bar'])
 
     def test_look_behind(self):
-        gauged = Gauged(self.driver, resolution=1000, block_size=10000, max_look_behind=10000)
+        gauged = Gauged(
+            self.driver, resolution=1000, block_size=10000, max_look_behind=10000)
         with gauged.writer as writer:
             writer.add('foo', 123, timestamp=10000)
             writer.add('bar', 123, timestamp=40000)
@@ -400,10 +429,14 @@ class TestGauged(TestCase):
         with gauged.writer as writer:
             writer.add('foo', 100, timestamp=11000)
             writer.add('foo', 200, timestamp=23000)
-        self.assertEqual(gauged.aggregate('foo', Gauged.MEAN, start=10000, end=30000), 150)
-        self.assertEqual(gauged.aggregate('foo', Gauged.MEAN, start=11000, end=24000), 150)
-        self.assertEqual(gauged.aggregate('foo', Gauged.MEAN, start=11000, end=23000), 100)
-        self.assertEqual(gauged.aggregate('foo', Gauged.STDDEV, start=11000, end=23000), 0)
+        self.assertEqual(
+            gauged.aggregate('foo', Gauged.MEAN, start=10000, end=30000), 150)
+        self.assertEqual(
+            gauged.aggregate('foo', Gauged.MEAN, start=11000, end=24000), 150)
+        self.assertEqual(
+            gauged.aggregate('foo', Gauged.MEAN, start=11000, end=23000), 100)
+        self.assertEqual(
+            gauged.aggregate('foo', Gauged.STDDEV, start=11000, end=23000), 0)
 
     def test_coercing_non_string_keys(self):
         gauged = Gauged(self.driver, resolution=1000, block_size=10000)
@@ -427,7 +460,8 @@ class TestGauged(TestCase):
         self.assertEqual(gauged.value('foo', timestamp=3000), 3)
 
     def test_auto_flush(self):
-        gauged = Gauged(self.driver, resolution=1000, block_size=10000, flush_seconds=0.001)
+        gauged = Gauged(
+            self.driver, resolution=1000, block_size=10000, flush_seconds=0.001)
         with gauged.writer as writer:
             writer.add('foo', 1, timestamp=1000)
             self.assertEqual(gauged.value('foo', timestamp=2000), None)
@@ -453,6 +487,7 @@ class TestGauged(TestCase):
     def test_add_debug(self):
         context = dict(called=False)
         gauged = Gauged(self.driver)
+
         def mock_debug(*_):
             context['called'] = True
         with gauged.writer as writer:
@@ -514,7 +549,8 @@ class TestGauged(TestCase):
             writer.add('foo', 789, timestamp=35000)
         with gauged.writer as writer:
             self.assertEqual(writer.resume_from(), 36000)
-        gauged = Gauged(self.driver, resolution=1000, block_size=10000, writer_name='foobar')
+        gauged = Gauged(
+            self.driver, resolution=1000, block_size=10000, writer_name='foobar')
         with gauged.writer as writer:
             self.assertEqual(writer.resume_from(), 0)
             writer.add('foo', 123, timestamp=10000)
@@ -541,7 +577,8 @@ class TestGauged(TestCase):
                 writer.clear_from(25000)
             writer.clear_from(20000)
         self.assertEqual(gauged.value('foo', timestamp=40000), 1)
-        self.assertEqual(gauged.value('foo', timestamp=40000, namespace=1), None)
+        self.assertEqual(
+            gauged.value('foo', timestamp=40000, namespace=1), None)
         with gauged.writer as writer:
             self.assertEqual(writer.resume_from(), 21000)
             writer.add('foo', 5, timestamp=30000)
@@ -557,7 +594,7 @@ class TestGauged(TestCase):
 
     def test_config_instance(self):
         config = Config(append_only_violation=Gauged.REWRITE,
-            resolution=1000, block_size=10000)
+                        resolution=1000, block_size=10000)
         gauged = Gauged(self.driver, config=config)
         with gauged.writer as writer:
             writer.add('foo', 1, timestamp=2000)
@@ -566,20 +603,21 @@ class TestGauged(TestCase):
 
     def test_relative_dates(self):
         now = long(time() * 1000)
-        gauged = Gauged(self.driver, defaults={'start':-4*Gauged.DAY})
+        gauged = Gauged(self.driver, defaults={'start': -4 * Gauged.DAY})
         with gauged.writer as writer:
-            writer.add('foo', 1, timestamp=now-6*Gauged.DAY)
-            writer.add('foo', 2, timestamp=now-5*Gauged.DAY)
-            writer.add('foo', 3, timestamp=now-3*Gauged.DAY)
-            writer.add('foo', 4, timestamp=now-2*Gauged.DAY)
-            writer.add('foo', 5, timestamp=now-Gauged.DAY)
+            writer.add('foo', 1, timestamp=now - 6 * Gauged.DAY)
+            writer.add('foo', 2, timestamp=now - 5 * Gauged.DAY)
+            writer.add('foo', 3, timestamp=now - 3 * Gauged.DAY)
+            writer.add('foo', 4, timestamp=now - 2 * Gauged.DAY)
+            writer.add('foo', 5, timestamp=now - Gauged.DAY)
         self.assertEqual(gauged.value('foo'), 5)
-        self.assertEqual(gauged.value('foo', timestamp=-1.5*Gauged.DAY), 4)
+        self.assertEqual(gauged.value('foo', timestamp=-1.5 * Gauged.DAY), 4)
 
     def test_fuzzy(self, decimal_places=4, max_values=3):
         def random_values(n, minimum, maximum, decimals):
-            return [ round(random.random() * (maximum - minimum) + minimum, decimals) \
-                for _ in xrange(n) ]
+            return [round(random.random() * (maximum - minimum) + minimum, decimals)
+                    for _ in xrange(n)]
+
         def percentile(values, percentile):
             if not len(values):
                 return float('nan')
@@ -588,8 +626,10 @@ class TestGauged(TestCase):
             nearest_rank = int(floor(rank))
             result = values[nearest_rank]
             if (ceil(rank) != nearest_rank):
-                result += (rank - nearest_rank) * (values[nearest_rank + 1] - result)
+                result += (rank - nearest_rank) * \
+                    (values[nearest_rank + 1] - result)
             return result
+
         def stddev(values):
             total = len(values)
             mean = float(sum(values)) / total
@@ -598,7 +638,8 @@ class TestGauged(TestCase):
         for resolution in (100, 500, 1000):
             for n in xrange(1, max_values):
                 for end in (1000, 10000):
-                    gauged = Gauged(self.driver, block_size=1000, resolution=resolution)
+                    gauged = Gauged(
+                        self.driver, block_size=1000, resolution=resolution)
                     gauged.driver.clear_schema()
                     values = random_values(n, -100, 100, 2)
                     with gauged.writer as writer:
@@ -606,19 +647,19 @@ class TestGauged(TestCase):
                         for value, timestamp in zip(values, timestamps):
                             writer.add('foo', value, timestamp=int(timestamp))
                     self.assertAlmostEqual(sum(values), gauged.aggregate('foo', Gauged.SUM),
-                        places=decimal_places)
+                                           places=decimal_places)
                     self.assertAlmostEqual(min(values), gauged.aggregate('foo', Gauged.MIN),
-                        places=decimal_places)
+                                           places=decimal_places)
                     self.assertAlmostEqual(max(values), gauged.aggregate('foo', Gauged.MAX),
-                        places=decimal_places)
+                                           places=decimal_places)
                     self.assertAlmostEqual(len(values), gauged.aggregate('foo', Gauged.COUNT),
-                        places=decimal_places)
+                                           places=decimal_places)
                     mean = float(sum(values)) / len(values)
                     self.assertAlmostEqual(mean, gauged.aggregate('foo', Gauged.MEAN),
-                        places=decimal_places)
+                                           places=decimal_places)
                     self.assertAlmostEqual(stddev(values), gauged.aggregate('foo', Gauged.STDDEV),
-                        places=decimal_places)
+                                           places=decimal_places)
                     self.assertAlmostEqual(percentile(values, 50), gauged.aggregate('foo', Gauged.MEDIAN),
-                        places=decimal_places)
+                                           places=decimal_places)
                     self.assertAlmostEqual(percentile(values, 98), gauged.aggregate('foo',
-                        Gauged.PERCENTILE, percentile=98), places=decimal_places)
+                                                                                    Gauged.PERCENTILE, percentile=98), places=decimal_places)

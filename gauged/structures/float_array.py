@@ -6,17 +6,19 @@ Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 
 from types import ListType, BufferType
 from ctypes import (create_string_buffer, c_void_p, pythonapi, py_object, byref,
-    cast, addressof, c_char, c_size_t)
+                    cast, addressof, c_char, c_size_t)
 from ..bridge import Gauged, FloatPtr
 from ..errors import GaugedUseAfterFreeError
 from ..utilities import IS_PYPY
 
+
 class FloatArray(object):
+
     '''An array of C floats'''
 
     ALLOCATIONS = 0
 
-    __slots__ = [ '_ptr' ]
+    __slots__ = ['_ptr']
 
     def __init__(self, buf=None, length=0):
         '''Create a new array. The constructor accepts a buffer + byte_length or a
@@ -33,7 +35,7 @@ class FloatArray(object):
                 address = c_void_p()
                 buf_length = c_size_t()
                 pythonapi.PyObject_AsReadBuffer(py_object(buf),
-                    byref(address), byref(buf_length))
+                                                byref(address), byref(buf_length))
                 buf_length = buf_length.value
                 buf = address
             buf = cast(buf, FloatPtr)
@@ -96,7 +98,7 @@ class FloatArray(object):
         return self.ptr.contents.length
 
     def __repr__(self):
-        return '[' + ', '.join(( str(value) for value in self )) + ']'
+        return '[' + ', '.join((str(value) for value in self)) + ']'
 
     def __enter__(self):
         return self

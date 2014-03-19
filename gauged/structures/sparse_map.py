@@ -6,19 +6,21 @@ Copyright 2014 (c) Chris O'Hara <cohara87@gmail.com>
 
 from types import DictType, BufferType
 from ctypes import (create_string_buffer, c_void_p, pythonapi, py_object, byref,
-    cast, c_uint32, addressof, c_char, c_size_t, c_float)
+                    cast, c_uint32, addressof, c_char, c_size_t, c_float)
 from ..bridge import Gauged, MapPtr, Uint32Ptr, FloatPtr
 from ..utilities import IS_PYPY
 from ..errors import GaugedUseAfterFreeError
 
+
 class SparseMap(object):
+
     '''A structure which adds another dimension to FloatArray. The
     Map encodes a FloatArray + offset contiguously to improve cache
     locality'''
 
     ALLOCATIONS = 0
 
-    __slots__ = [ '_ptr' ]
+    __slots__ = ['_ptr']
 
     def __init__(self, buf=None, length=0):
         '''Create a new SparseMap. The constructor accepts a buffer and
@@ -39,7 +41,7 @@ class SparseMap(object):
                     address = c_void_p()
                     buf_length = c_size_t()
                     pythonapi.PyObject_AsReadBuffer(py_object(buf),
-                        byref(address), byref(buf_length))
+                                                    byref(address), byref(buf_length))
                     buf_length = buf_length.value
                     buf = address
                 buf = cast(buf, Uint32Ptr)
@@ -78,7 +80,7 @@ class SparseMap(object):
         if tmp is None:
             raise MemoryError
         if not Gauged.map_concat(tmp, self.ptr, start, end, 0):
-            Gauged.map_free(tmp) # pragma: no cover
+            Gauged.map_free(tmp)  # pragma: no cover
             raise MemoryError
         return SparseMap(tmp)
 
@@ -176,7 +178,7 @@ class SparseMap(object):
         advance = Gauged.map_advance
         while seen_length < length:
             current_buf = advance(current_buf, header_, position_,
-                arraylength_, arrayptr_)
+                                  arraylength_, arrayptr_)
             seen_length += header.value + arraylength.value
             address = addressof(arrayptr.contents)
             arr = (c_float * arraylength.value).from_address(address)
@@ -185,7 +187,8 @@ class SparseMap(object):
     def __repr__(self):
         rows = []
         for position, values in self.iteritems():
-            row = '[ %s ] = [%s]' % (position, ', '.join(( str(v) for v in values )))
+            row = '[ %s ] = [%s]' % (
+                position, ', '.join((str(v) for v in values)))
             rows.append(row)
         return '\n'.join(rows)
 
